@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 證券交易模擬遊戲</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=20260305-3">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<section id="login-view">
+    <div class="login-box">
+        <h1>📈 證券交易模擬遊戲</h1>
+        <p class="subtitle">Hi-Freq Trading Simulator</p>
+        <form id="login-form" autocomplete="off">
+            <div class="form-group">
+                <label for="login-user">👤 帳號</label>
+                <input id="login-user" type="text" placeholder="輸入帳號" required>
+            </div>
+            <div class="form-group">
+                <label for="login-pass">🔑 密碼</label>
+                <input id="login-pass" type="password" placeholder="輸入密碼" required>
+            </div>
+            <button type="submit" class="btn primary full">登入</button>
+            <p id="login-error" class="error-text" hidden></p>
+        </form>
+    </div>
+</section>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<section id="app-view" hidden>
+    <!-- Top Bar -->
+    <header id="topbar">
+        <div class="topbar-left">
+            <span class="logo">📈 證券模擬</span>
+        </div>
+        <nav class="main-nav">
+            <button class="nav-btn active" data-panel="dashboard">🏠 帳戶儀表板</button>
+            <button class="nav-btn" data-panel="market">📊 看盤</button>
+            <button class="nav-btn" data-panel="trading">💹 交易</button>
+            <button class="nav-btn" data-panel="leaderboard">🏆 排行榜</button>
+        </nav>
+        <div class="topbar-right">
+            <div id="user-menu" class="user-menu">
+                <button id="user-menu-btn" type="button" class="user-menu-btn">
+                    <span id="user-display"></span>
+                    <span class="user-menu-caret">▼</span>
+                </button>
+                <div id="user-menu-dropdown" class="user-menu-dropdown" hidden>
+                    <button id="menu-change-password" type="button" class="user-menu-item">🔐 變更密碼</button>
+                    <div class="user-menu-item-wrap">
+                        <button id="menu-system-settings" type="button" class="user-menu-item">⚙️ 系統設定 ▸</button>
+                        <div id="system-submenu" class="user-submenu" hidden>
+                            <button type="button" class="user-menu-item" data-engine="market">撮合引擎A：大盤買賣價 vs 委託</button>
+                            <button type="button" class="user-menu-item" data-engine="order">撮合引擎B：委託 vs 委託</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="logout-btn" class="btn small">登出</button>
+        </div>
+    </header>
+
+    <main id="main-content">
+
+        <!-- ═══ PANEL 1: DASHBOARD ═══ -->
+        <div id="panel-dashboard" class="panel active">
+            <!-- Account Summary -->
+            <div class="summary-cards">
+                <div class="card">
+                    <div class="card-label">💰 可用現金</div>
+                    <div class="card-value" id="sum-cash">$0</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">🔒 凍結資金</div>
+                    <div class="card-value" id="sum-locked">$0</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">📦 持股市值</div>
+                    <div class="card-value" id="sum-holdings">$0</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">📈 收益率</div>
+                    <div class="card-value" id="sum-yield">0%</div>
+                </div>
+            </div>
+
+            <!-- Sub-tabs -->
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-sub="cashflow">💳 資金明細</button>
+                <button class="sub-tab" data-sub="holdings">📋 持股列表</button>
+                <button class="sub-tab" data-sub="admin" id="tab-admin" hidden>👑 使用者管理</button>
+            </div>
+
+            <!-- Sub-panel 1-A: Admin User Management -->
+            <div id="sub-admin" class="sub-panel" hidden>
+                <!-- Admin: User Management -->
+                <div id="admin-section" hidden>
+                    <h3>👑 使用者管理（管理員）</h3>
+                    <div class="toolbar">
+                        <button id="admin-add-user-btn" class="btn success small">➕ 新增使用者</button>
+                        <button id="admin-refresh-btn" class="btn small">🔄 重新整理</button>
+                    </div>
+                    <table id="admin-users-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>帳號</th>
+                                <th>顯示名稱</th>
+                                <th>角色</th>
+                                <th>建立時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Admin: Add User Modal -->
+                <div id="add-user-modal" class="modal" hidden>
+                    <div class="modal-content">
+                        <h3>新增使用者</h3>
+                        <form id="add-user-form">
+                            <div class="form-group">
+                                <label>帳號</label>
+                                <input id="new-username" type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label>密碼</label>
+                                <input id="new-password" type="password" required>
+                            </div>
+                            <div class="form-group">
+                                <label>顯示名稱</label>
+                                <input id="new-display-name" type="text">
+                            </div>
+                            <div class="form-group">
+                                <label>角色</label>
+                                <select id="new-role">
+                                    <option value="user">一般使用者</option>
+                                    <option value="admin">管理員</option>
+                                </select>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn primary">建立</button>
+                                <button type="button" class="btn" onclick="closeModal('add-user-modal')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Admin: Edit User Modal -->
+                <div id="edit-user-modal" class="modal" hidden>
+                    <div class="modal-content">
+                        <h3>✏️ 修改使用者資料</h3>
+                        <form id="edit-user-form">
+                            <input id="edit-user-id" type="hidden">
+                            <div class="form-group">
+                                <label>帳號</label>
+                                <input id="edit-username" type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label>顯示名稱</label>
+                                <input id="edit-display-name" type="text">
+                            </div>
+                            <div class="form-group">
+                                <label>角色</label>
+                                <select id="edit-role">
+                                    <option value="user">一般使用者</option>
+                                    <option value="admin">管理員</option>
+                                </select>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn primary">儲存</button>
+                                <button type="button" class="btn" onclick="closeModal('edit-user-modal')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Admin: Reset Password Modal -->
+                <div id="reset-pw-modal" class="modal" hidden>
+                    <div class="modal-content">
+                        <h3>🔑 重設密碼</h3>
+                        <form id="reset-pw-form">
+                            <input id="reset-pw-user-id" type="hidden">
+                            <p id="reset-pw-label" style="margin-bottom:12px;color:var(--text-light)"></p>
+                            <div class="form-group">
+                                <label>新密碼</label>
+                                <input id="reset-pw-new" type="password" required>
+                            </div>
+                            <div class="form-group">
+                                <label>確認新密碼</label>
+                                <input id="reset-pw-confirm" type="password" required>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn primary">重設密碼</button>
+                                <button type="button" class="btn" onclick="closeModal('reset-pw-modal')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sub-panel 1-2: Cash Flow -->
+            <div id="sub-cashflow" class="sub-panel active">
+                <h3>💳 資金明細</h3>
+                <div class="toolbar">
+                    <button id="deposit-btn" class="btn success small">➕ 入金</button>
+                    <button id="export-trades-btn" class="btn small">📥 匯出 CSV</button>
+                </div>
+                <!-- Deposit Modal -->
+                <div id="deposit-modal" class="modal" hidden>
+                    <div class="modal-content">
+                        <h3>入金</h3>
+                        <form id="deposit-form">
+                            <div class="form-group">
+                                <label>金額</label>
+                                <input id="deposit-amount" type="number" min="1" step="1" required>
+                            </div>
+                            <div class="modal-actions">
+                                <button type="submit" class="btn primary">確認入金</button>
+                                <button type="button" class="btn" onclick="closeModal('deposit-modal')">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <table id="cashflow-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>時間</th>
+                            <th>類型</th>
+                            <th>金額</th>
+                            <th>說明</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Sub-panel 1-3: Holdings -->
+            <div id="sub-holdings" class="sub-panel" hidden>
+                <h3>📋 目前持股</h3>
+                <table id="holdings-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>股票代碼</th>
+                            <th>持有數量</th>
+                            <th>買進日期</th>
+                            <th>平均買進價格</th>
+                            <th>目前價格</th>
+                            <th>市值</th>
+                            <th>損益</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+
+                <h3>📜 歷史交易紀錄</h3>
+                <div class="toolbar">
+                    <button id="export-holdings-btn" class="btn small">📥 匯出 Excel</button>
+                </div>
+                <table id="trade-history-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>交易日期</th>
+                            <th>股票代碼</th>
+                            <th>買/賣</th>
+                            <th>數量</th>
+                            <th>成交價</th>
+                            <th>買賣價差</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Change Password Modal (global, outside sub-panels) -->
+            <div id="change-pw-modal" class="modal" hidden>
+                <div class="modal-content">
+                    <h3>🔐 變更密碼</h3>
+                    <form id="change-pw-form" class="compact-form">
+                        <div class="form-group">
+                            <label>舊密碼</label>
+                            <input id="pw-old" type="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>新密碼</label>
+                            <input id="pw-new" type="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>確認新密碼</label>
+                            <input id="pw-confirm" type="password" required>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="submit" class="btn primary">更新密碼</button>
+                            <button type="button" class="btn" onclick="closeModal('change-pw-modal')">取消</button>
+                        </div>
+                        <p id="pw-msg" class="msg-text" hidden></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PANEL 2: MARKET ═══ -->
+        <div id="panel-market" class="panel" hidden>
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-sub="market-overview">📊 大盤總覽</button>
+                <button class="sub-tab" data-sub="market-search">🔍 個股查詢</button>
+            </div>
+
+            <!-- Sub-panel 2-1: Market Overview -->
+            <div id="sub-market-overview" class="sub-panel active">
+                <h3>📊 即時行情總覽</h3>
+                <table id="market-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>代碼</th>
+                            <th>名稱</th>
+                            <th>現價</th>
+                            <th>買價</th>
+                            <th>賣價</th>
+                            <th>漲跌</th>
+                            <th>漲跌幅</th>
+                            <th>成交量</th>
+                            <th>成交筆數</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Sub-panel 2-2: Stock Search -->
+            <div id="sub-market-search" class="sub-panel" hidden>
+                <h3>🔍 個股即時查詢</h3>
+                <div class="search-bar">
+                    <input id="stock-search-input" type="text" placeholder="輸入股票代碼 (例: 2330)">
+                    <button id="stock-search-btn" class="btn primary">查詢</button>
+                </div>
+                <div id="stock-detail" class="stock-detail-card" hidden>
+                    <div class="detail-header">
+                        <span id="detail-symbol" class="detail-symbol"></span>
+                        <span id="detail-name" class="detail-name"></span>
+                    </div>
+                    <div class="detail-grid">
+                        <div><span class="label">現價</span><span id="detail-price" class="value"></span></div>
+                        <div><span class="label">買價</span><span id="detail-bid" class="value"></span></div>
+                        <div><span class="label">賣價</span><span id="detail-ask" class="value"></span></div>
+                        <div><span class="label">開盤</span><span id="detail-open" class="value"></span></div>
+                        <div><span class="label">最高</span><span id="detail-high" class="value"></span></div>
+                        <div><span class="label">最低</span><span id="detail-low" class="value"></span></div>
+                        <div><span class="label">漲跌</span><span id="detail-change" class="value"></span></div>
+                        <div><span class="label">漲跌幅</span><span id="detail-change-pct" class="value"></span></div>
+                        <div><span class="label">成交量</span><span id="detail-volume" class="value"></span></div>
+                        <div><span class="label">成交筆數</span><span id="detail-trades-count" class="value"></span></div>
+                    </div>
+
+                    <!-- Chart Tabs -->
+                    <div class="chart-tabs">
+                        <button class="chart-tab active" data-chart="line">📈 折線圖</button>
+                        <button class="chart-tab" data-chart="candle">🕯️ K線+成交量</button>
+                        <button class="chart-tab" data-chart="kd">📊 KD 指標</button>
+                    </div>
+
+                    <div class="chart-container" id="chart-line-container">
+                        <canvas id="price-chart"></canvas>
+                    </div>
+                    <div class="chart-container" id="chart-candle-container" hidden>
+                        <canvas id="candle-chart"></canvas>
+                    </div>
+                    <div class="chart-container chart-container-tall" id="chart-kd-container" hidden>
+                        <canvas id="kd-chart"></canvas>
+                    </div>
+
+                    <button class="btn success" id="detail-buy-btn">📈 買入</button>
+                    <button class="btn danger" id="detail-sell-btn">📉 賣出</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PANEL 3: TRADING ═══ -->
+        <div id="panel-trading" class="panel" hidden>
+            <div class="trading-layout">
+                <!-- Order Form -->
+                <div class="order-form-section">
+                    <h3>📝 下單</h3>
+                    <form id="order-form">
+                        <div class="form-group">
+                            <label>股票代碼</label>
+                            <input id="order-symbol" type="text" placeholder="例: 2330" required>
+                        </div>
+                        <div class="form-group">
+                            <label>買賣方向</label>
+                            <div class="radio-group">
+                                <label class="radio-label buy-label">
+                                    <input type="radio" name="order-side" value="BUY" checked>
+                                    📈 買入
+                                </label>
+                                <label class="radio-label sell-label">
+                                    <input type="radio" name="order-side" value="SELL">
+                                    📉 賣出
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>委託類型</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="order-type" value="LIMIT" checked>
+                                    限價
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="order-type" value="MARKET">
+                                    市價
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group" id="price-group">
+                            <label>委託價格</label>
+                            <input id="order-price" type="number" min="0.01" step="0.01" placeholder="輸入價格">
+                        </div>
+                        <div class="form-group">
+                            <label>委託數量（股）</label>
+                            <input id="order-qty" type="number" min="1" step="1" placeholder="輸入數量" required>
+                        </div>
+                        <div id="order-preview" class="order-preview" hidden>
+                            <span>預估金額: </span><strong id="preview-total">$0</strong>
+                        </div>
+                        <button type="submit" class="btn primary full">送出委託</button>
+                        <p id="order-msg" class="msg-text" hidden></p>
+                    </form>
+                </div>
+
+                <!-- Order Tracking -->
+                <div class="order-tracking-section">
+                    <h3>📋 今日委託</h3>
+                    <div class="toolbar">
+                        <button id="refresh-orders-btn" class="btn small">🔄 重新整理</button>
+                        <button id="export-orders-btn" class="btn small">📥 匯出</button>
+                    </div>
+                    <table id="orders-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>代碼</th>
+                                <th>方向</th>
+                                <th>類型</th>
+                                <th>價格</th>
+                                <th>數量</th>
+                                <th>已成交</th>
+                                <th>狀態</th>
+                                <th>狀態說明</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PANEL 4: LEADERBOARD ═══ -->
+        <div id="panel-leaderboard" class="panel" hidden>
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-sub="lb-ranking">🏆 收益排行榜</button>
+                <button class="sub-tab" data-sub="lb-mystocks">📊 我的類股收益排行</button>
+            </div>
+
+            <!-- Sub-panel: Global Leaderboard -->
+            <div id="sub-lb-ranking" class="sub-panel active">
+                <h3>🏆 全體交易員排行榜</h3>
+                <table id="leaderboard-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>名次</th>
+                            <th>交易員</th>
+                            <th>總資產</th>
+                            <th>損益 (P&L)</th>
+                            <th>收益率</th>
+                            <th>成交筆數</th>
+                            <th>成交金額</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Sub-panel: My Stock P&L Ranking -->
+            <div id="sub-lb-mystocks" class="sub-panel" hidden>
+                <h3>📊 我的類股收益排行</h3>
+                <table id="my-stock-ranking-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>股票代碼</th>
+                            <th>持有數量</th>
+                            <th>平均成本</th>
+                            <th>目前價格</th>
+                            <th>損益</th>
+                            <th>收益率</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Status Bar -->
+    <footer id="statusbar">
+        <span id="ws-status" class="status-dot disconnected">⚫ 未連線</span>
+        <span id="clock"></span>
+    </footer>
+</section>
+
+<!-- Toast Notification -->
+<div id="toast-container"></div>
+
+<script src="/static/js/app.js?v=20260305-11"></script>
+</body>
+</html>

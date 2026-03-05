@@ -1,0 +1,2 @@
+trade_id,symbol,price,qty,buy_order_id,sell_order_id,matched_at
+98e1dbf7-5260-490f-a596-a29da288a6c3,2881,0,1,23f43cc4-1efc-4126-b15a-38ac178c0bed,a75a9f01-958c-4746-94fd-2fad6687ce47,2026-03-05T14:54:30.402722+00:00

@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+report.html
+
+# E2E Testing
+tests/e2e/screenshots/*.png
+tests/e2e/videos/*.webm
+!tests/e2e/screenshots/.gitkeep
+!tests/e2e/videos/.gitkeep
+playwright.config.py
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (if sensitive)
+data/users.json
+data/events/**/*.jsonl
+
+# Environment
+.env
+.env.local
